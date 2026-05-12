@@ -2654,12 +2654,27 @@ def update_terms_from_json(json_file, dry_run):
                 args['--acronym'] = update['acronyms'] if isinstance(update['acronyms'], list) else [update['acronyms']]
             if update.get('owner_ids'):
                 args['--owner-id'] = update['owner_ids'] if isinstance(update['owner_ids'], list) else [update['owner_ids']]
+            if update.get('expert_ids'):
+                args['--expert-id'] = update['expert_ids'] if isinstance(update['expert_ids'], list) else [update['expert_ids']]
             
             # Add "add" operations
             if update.get('add_acronyms'):
                 args['--add-acronym'] = update['add_acronyms'] if isinstance(update['add_acronyms'], list) else [update['add_acronyms']]
             if update.get('add_owner_ids'):
                 args['--add-owner-id'] = update['add_owner_ids'] if isinstance(update['add_owner_ids'], list) else [update['add_owner_ids']]
+            if update.get('add_expert_ids'):
+                args['--add-expert-id'] = update['add_expert_ids'] if isinstance(update['add_expert_ids'], list) else [update['add_expert_ids']]
+
+            if update.get('contacts') and isinstance(update['contacts'], dict):
+                args['--contacts'] = [update['contacts']]
+
+            if update.get('managedAttributes') or update.get('managed_attributes'):
+                managed_attrs = update.get('managedAttributes') or update.get('managed_attributes')
+                args['--managed-attributes'] = [managed_attrs]
+
+            if update.get('customAttributes') or update.get('custom_attributes'):
+                custom_attrs = update.get('customAttributes') or update.get('custom_attributes')
+                args['--custom-attributes'] = [json.dumps(custom_attrs)]
             
             # Display progress
             display_name = update.get('name', term_id[:36])
