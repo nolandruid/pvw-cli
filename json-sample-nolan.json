@@ -1,0 +1,63 @@
+    {
+        "status":  "Draft/Published",
+        "id":  "",
+        "name":  "",
+        "systemData":  {
+                           "createdAt":  "",
+                           "createdBy":  "",
+                           "lastModifiedAt":  "",
+                           "lastModifiedBy":  ""
+                       },
+        "description":  "",
+        "contacts":  {
+                         "owner":  [
+                                       {
+                                           "id":  ""
+                                       }
+                                   ],
+                         "expert":  [
+                                        {
+                                            "id":  ""
+                                        }
+                                    ]
+                     },
+        "domain":  "",
+        "resources":  [
+                          {
+                              "name":  "",
+                              "url":  ""
+                          },
+                          {
+                              "name":  "",
+                              "url":  ""
+                          },
+                          {
+                              "name":  "",
+                              "url":  ""
+                          }
+                      ],
+        "isLeaf":  true,
+        "isMigrated":  false,
+        "managedAttributes":  [
+                                  {
+                                      "name":  "",
+                                      "value":  ""
+                                  },
+                                  {
+                                      "name":  "",
+                                      "value":  ""
+                                  },
+                                  {
+                                      "name":  "",
+                                      "value":  ""
+                                  },
+                                  {
+                                      "name":  "",
+                                      "value":  ""
+                                  },
+                                  {
+                                      "name":  "",
+                                      "value":  ""
+                                  }
+                              ]
+    }
