@@ -2020,28 +2020,57 @@ Use Cases:
             payload["parentId"] = args["--parent-id"][0]
         if args.get("--status"):
             payload["status"] = args["--status"][0]
-        
-        # Handle owners - replace or add to existing
+
+        def _normalize_contact_list(contact_values):
+            if not isinstance(contact_values, list):
+                return []
+            normalized = []
+            for entry in contact_values:
+                if isinstance(entry, dict) and entry.get("id"):
+                    normalized.append(entry)
+                elif isinstance(entry, str) and entry.strip():
+                    normalized.append({"id": entry.strip()})
+            return normalized
+
+        # Preserve existing contact roles and update only the ones explicitly provided.
         contacts = existing_term.get("contacts") or {}
-        existing_owners = contacts.get("owner", []) if isinstance(contacts, dict) else []
+        merged_contacts = contacts.copy() if isinstance(contacts, dict) else {}
+
+        if args.get("--contacts"):
+            for contacts_arg in args["--contacts"]:
+                if not isinstance(contacts_arg, dict):
+                    continue
+                for role, values in contacts_arg.items():
+                    normalized_values = _normalize_contact_list(values)
+                    if normalized_values:
+                        merged_contacts[role] = normalized_values
+
+        existing_owners = _normalize_contact_list(merged_contacts.get("owner", []))
         if args.get("--owner-id"):
-            # Replace owners
-            owners = [{"id": oid} for oid in args["--owner-id"]]
-            payload["contacts"] = {"owner": owners}
+            merged_contacts["owner"] = [{"id": oid} for oid in args["--owner-id"]]
         elif args.get("--add-owner-id"):
-            # Add to existing owners
-            existing_owner_ids = set()
-            if isinstance(existing_owners, list):
-                for o in existing_owners:
-                    if isinstance(o, dict) and o.get("id"):
-                        existing_owner_ids.add(o.get("id"))
-            new_owner_ids = args["--add-owner-id"]
-            combined_owner_ids = existing_owner_ids.union(set(new_owner_ids))
-            owners = [{"id": oid} for oid in combined_owner_ids]
-            payload["contacts"] = {"owner": owners}
-        elif existing_owners:
-            # Keep existing owners
-            payload["contacts"] = {"owner": existing_owners}
+            existing_owner_ids = {
+                owner.get("id")
+                for owner in existing_owners
+                if isinstance(owner, dict) and owner.get("id")
+            }
+            combined_owner_ids = existing_owner_ids.union(set(args["--add-owner-id"]))
+            merged_contacts["owner"] = [{"id": oid} for oid in combined_owner_ids]
+
+        existing_experts = _normalize_contact_list(merged_contacts.get("expert", []))
+        if args.get("--expert-id"):
+            merged_contacts["expert"] = [{"id": eid} for eid in args["--expert-id"]]
+        elif args.get("--add-expert-id"):
+            existing_expert_ids = {
+                expert.get("id")
+                for expert in existing_experts
+                if isinstance(expert, dict) and expert.get("id")
+            }
+            combined_expert_ids = existing_expert_ids.union(set(args["--add-expert-id"]))
+            merged_contacts["expert"] = [{"id": eid} for eid in combined_expert_ids]
+
+        if merged_contacts:
+            payload["contacts"] = merged_contacts
         
         # Handle acronyms - replace or add to existing
         existing_acronyms = existing_term.get("acronyms", []) or []
@@ -2073,11 +2102,29 @@ Use Cases:
             # Keep existing resources
             payload["resources"] = existing_resources
 
-        # Handle managed attributes (convert from nested JSON to API format)
+        # Handle managed attributes (convert from nested JSON or direct list to API format)
         try:
+            import json as _json
+            managed_attrs = []
+
+            provided_ma = args.get("--managed-attributes")
+            if provided_ma:
+                for item in provided_ma:
+                    if isinstance(item, list):
+                        for ma in item:
+                            if isinstance(ma, dict) and ma.get("name") is not None and ma.get("value") is not None:
+                                managed_attrs.append({
+                                    "name": str(ma["name"]),
+                                    "value": str(ma["value"]),
+                                })
+                    elif isinstance(item, dict) and item.get("name") is not None and item.get("value") is not None:
+                        managed_attrs.append({
+                            "name": str(item["name"]),
+                            "value": str(item["value"]),
+                        })
+
             provided_ca = args.get("--custom-attributes")
             if provided_ca:
-                import json as _json
                 provided = {}
                 # Support list of JSON strings or dicts
                 for item in provided_ca:
@@ -2096,8 +2143,6 @@ Use Cases:
                 # Convert nested JSON to managedAttributes format (flat list with dot notation)
                 # Input: {"DataProductGovernance": {"BusinessDomain": "Finance", ...}}
                 # Output: [{"name": "DataProductGovernance.BusinessDomain", "value": "Finance"}, ...]
-                managed_attrs = []
-                
                 def flatten_attributes(obj, parent_key=''):
                     for key, value in obj.items():
                         if isinstance(value, dict):
