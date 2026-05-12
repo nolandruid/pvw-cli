@@ -2628,9 +2628,14 @@ def update_terms_from_json(json_file, dry_run):
         failed_terms = []
         
         for idx, update in enumerate(updates, 1):
-            term_id = update.get('term_id', '').strip() if isinstance(update.get('term_id'), str) else ''
+            term_id = ""
+            for key in ("id", "term_id"):
+                value = update.get(key)
+                if isinstance(value, str) and value.strip():
+                    term_id = value.strip()
+                    break
             if not term_id:
-                console.print(f"[yellow]Skipping update {idx}: Missing term_id[/yellow]")
+                console.print(f"[yellow]Skipping update {idx}: Missing id/term_id[/yellow]")
                 continue
             
             # Build update arguments
