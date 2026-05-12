@@ -2561,15 +2561,30 @@ def update_terms_from_json(json_file, dry_run):
     {
         "updates": [
             {
-                "term_id": "term-guid",
+                "id": "term-guid",                     // Preferred: Purview term ID
+                "term_id": "term-guid",                // Legacy alias
                 "name": "New Name",                    // Optional: Replace name
                 "description": "New description",      // Optional: Replace description
                 "status": "Published",                 // Optional: Change status
                 "parent_id": "parent-term-guid",       // Optional: Set parent term (hierarchical)
                 "acronyms": ["API", "REST"],          // Optional: Replace all acronyms
                 "owner_ids": ["user@company.com"],    // Optional: Replace all owners
+                "expert_ids": ["user2@company.com"],  // Optional: Replace all experts
+                "contacts": {                          // Optional: Direct Purview-style contact payload
+                    "owner": [{"id": "owner-guid"}],
+                    "expert": [{"id": "expert-guid"}]
+                },
+                "managedAttributes": [                 // Optional: Direct Purview-style managed attributes
+                    {"name": "DataGovernance.Classification", "value": "PII"}
+                ],
+                "customAttributes": {                 // Optional: Nested alias, converted to managedAttributes
+                    "DataGovernance": {
+                        "Classification": "PII"
+                    }
+                },
                 "add_acronyms": ["SQL"],              // Optional: Add acronyms (preserves existing)
-                "add_owner_ids": ["user2@company.com"] // Optional: Add owners (preserves existing)
+                "add_owner_ids": ["user2@company.com"], // Optional: Add owners (preserves existing)
+                "add_expert_ids": ["user3@company.com"] // Optional: Add experts (preserves existing)
             }
         ]
     }
