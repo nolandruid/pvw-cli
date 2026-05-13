@@ -6,6 +6,8 @@ The `update-csv` and `update-json` commands allow you to update multiple terms a
 
 - Updating term statuses in bulk (e.g., Draft → Published)
 - Adding acronyms or owners to multiple terms
+- Updating experts on multiple terms
+- Updating managed attributes (shown as custom attributes/custom metadata in the UI)
 - Standardizing descriptions across terms
 - Batch corrections and enhancements
 
@@ -75,6 +77,7 @@ jkl-012,Child Term,New child term,,parent-guid,,,,
 {
   "updates": [
     {
+      "id": "term-guid",
       "term_id": "term-guid",
       "name": "New Name",                    // Optional: Replace name
       "description": "New description",      // Optional: Replace description
@@ -82,12 +85,45 @@ jkl-012,Child Term,New child term,,parent-guid,,,,
       "parent_id": "parent-term-guid",       // Optional: Set parent term (hierarchical)
       "acronyms": ["API", "REST"],          // Optional: Replace all acronyms
       "owner_ids": ["user@company.com"],    // Optional: Replace all owners
+      "expert_ids": ["user2@company.com"],  // Optional: Replace all experts
+      "contacts": {                         // Optional: Direct Purview-style contact update
+        "owner": [{"id": "owner-guid"}],
+        "expert": [{"id": "expert-guid"}]
+      },
+      "managedAttributes": [                // Optional: Direct Purview-style managed attributes
+        {"name": "DataGovernance.Classification", "value": "PII"}
+      ],
+      "customAttributes": {                 // Optional: Nested alias converted to managedAttributes
+        "DataGovernance": {
+          "Classification": "PII"
+        }
+      },
       "add_acronyms": ["SQL"],              // Optional: Add acronyms (preserves existing)
-      "add_owner_ids": ["user2@company.com"] // Optional: Add owners (preserves existing)
+      "add_owner_ids": ["user2@company.com"], // Optional: Add owners (preserves existing)
+      "add_expert_ids": ["user3@company.com"] // Optional: Add experts (preserves existing)
     }
   ]
 }
 ```
+
+### Identifier Rules
+
+- `id` is the preferred field because it matches Purview term payloads and exports.
+- `term_id` remains supported as a backward-compatible alias.
+- If both are present, `id` is used.
+
+### Attributes in JSON
+
+- `managedAttributes` is the API field used for UC term attributes.
+- In the Purview UI, the same values may appear as custom attributes or custom metadata.
+- `customAttributes` is accepted as a convenience alias and converted into `managedAttributes`.
+- Existing managed attributes are preserved and merged by attribute `name`; incoming values override matching names.
+
+### Contacts in JSON
+
+- `owner_ids` and `add_owner_ids` remain supported.
+- `expert_ids` and `add_expert_ids` work the same way for expert contacts.
+- `contacts` can also be supplied directly in Purview-style format when you want to send owner/expert lists explicitly.
 
 ### JSON Example
 
@@ -95,15 +131,22 @@ jkl-012,Child Term,New child term,,parent-guid,,,,
 {
   "updates": [
     {
-      "term_id": "abc-123",
+      "id": "abc-123",
       "name": "Customer Acquisition Cost",
       "status": "Published",
-      "add_acronyms": ["CAC"]
+      "add_acronyms": ["CAC"],
+      "managedAttributes": [
+        {
+          "name": "DataGovernance.Classification",
+          "value": "PII"
+        }
+      ]
     },
     {
-      "term_id": "def-456",
+      "id": "def-456",
       "description": "Updated description with more details",
-      "add_owner_ids": ["manager@company.com"]
+      "add_owner_ids": ["manager@company.com"],
+      "expert_ids": ["expert-guid-1"]
     }
   ]
 }
@@ -220,7 +263,7 @@ $updates = @{
     updates = @(
         $draftTerms | ForEach-Object {
             @{
-                term_id = $_.id
+                id = $_.id
                 status = "Published"
             }
         }
@@ -238,10 +281,14 @@ $updates | ConvertTo-Json -Depth 10 | Set-Content "publish_drafts.json"
 - `name`, `description`, `status` - Always replace
 - `acronyms` - Replaces all existing acronyms
 - `owner_ids` - Replaces all existing owners
+- `expert_ids` - Replaces all existing experts
+- `contacts` - Replaces the explicitly supplied contact roles
+- `managedAttributes` - Replaces matching attribute names, preserves non-mentioned ones
 
 **Add Operations** (preserves existing values):
 - `add_acronyms` - Adds to existing acronyms
 - `add_owner_ids` - Adds to existing owners
+- `add_expert_ids` - Adds to existing experts
 
 ### Best Practices
 
@@ -319,20 +366,24 @@ Sample files are available in the repository:
 
 - `samples/csv/uc_terms_bulk_update_example.csv`
 - `samples/json/term/uc_terms_bulk_update_example.json`
+- `samples/json/term/purview_term_reference_sample.json`
 
 ## Troubleshooting
 
-### Issue: "Missing term_id"
-**Solution:** Ensure every row has a valid term_id in the CSV/JSON
+### Issue: "Missing term_id" or "Missing id/term_id"
+**Solution:** Ensure every row/object has a valid `id` or `term_id`. Prefer `id` for JSON files built from Purview exports.
 
 ### Issue: "Term not found"
-**Solution:** Verify the term_id exists using `pvw uc term show --term-id <id>`
+**Solution:** Verify the term exists using `pvw uc term show --term-id <id>`
 
 ### Issue: "Invalid status"
 **Solution:** Use only: Draft, Published, or Archived
 
 ### Issue: "Owner not found"
 **Solution:** Use Entra Object IDs (GUIDs), not email addresses
+
+### Issue: Managed attributes are visible in the UI as custom attributes
+**Solution:** This is expected. The API field is `managedAttributes`; the UI may label the same values as custom attributes/custom metadata.
 
 ### Issue: Updates are slow
 **Solution:** This is normal - updates are rate-limited to avoid API throttling
