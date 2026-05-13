@@ -2157,26 +2157,27 @@ Use Cases:
                             managed_attrs.append({"name": attr_name, "value": value_str})
                 
                 flatten_attributes(provided)
-                
+
+            if managed_attrs:
                 # Get existing managed attributes from the term
                 existing_ma = existing_term.get("managedAttributes") or []
                 if not isinstance(existing_ma, list):
                     existing_ma = []
-                
+
                 # Create a map of existing attributes by name for merging
                 existing_map = {ma["name"]: ma for ma in existing_ma}
-                
+
                 # Merge: provided attributes override existing ones
                 for ma in managed_attrs:
                     existing_map[ma["name"]] = ma
-                
+
                 merged_ma = list(existing_map.values())
-                
+
                 if args.get("--debug"):
                     print(f"[DEBUG] Existing managed attributes: {_json.dumps(existing_ma, indent=2)}")
                     print(f"[DEBUG] Converted managed attributes: {_json.dumps(managed_attrs, indent=2)}")
                     print(f"[DEBUG] Merged managed attributes: {_json.dumps(merged_ma, indent=2)}")
-                
+
                 if merged_ma:
                     payload["managedAttributes"] = merged_ma
         except Exception as e:
