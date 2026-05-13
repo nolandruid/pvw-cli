@@ -256,3 +256,34 @@ class TestUnifiedCatalogClientUpdateTerm:
         assert managed_map["Existing.Field"] == "old"
         assert managed_map["Direct.Field"] == "direct"
         assert managed_map["Nested.Field"] == "nested"
+
+    @patch("purviewcli.client.endpoint.get_data")
+    @patch.object(UnifiedCatalogClient, "get_term_by_id")
+    def test_update_term_includes_direct_managed_attributes_without_custom_attributes(
+        self, mock_get_term_by_id, mock_get_data
+    ):
+        mock_get_term_by_id.return_value = {
+            "id": "term-guid-1",
+            "name": "Term",
+            "description": "Desc",
+            "domain": "domain-guid",
+            "status": "Draft",
+            "contacts": {},
+            "managedAttributes": [
+                {"name": "Existing.Field", "value": "old"},
+            ],
+        }
+        mock_get_data.side_effect = lambda http_dict: http_dict
+
+        client = UnifiedCatalogClient()
+        result = client.update_term(
+            {
+                "--term-id": ["term-guid-1"],
+                "--managed-attributes": [[{"name": "Direct.Field", "value": "direct"}]],
+            }
+        )
+
+        managed_attrs = result["payload"]["managedAttributes"]
+        managed_map = {item["name"]: item["value"] for item in managed_attrs}
+        assert managed_map["Existing.Field"] == "old"
+        assert managed_map["Direct.Field"] == "direct"
